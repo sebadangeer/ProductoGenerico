@@ -6,5 +6,4 @@ import lombok.Data;
 public class AgregarCarritoRequest {
     private Long productoId;
     private Integer cantidad;
-    private String talla;
 }

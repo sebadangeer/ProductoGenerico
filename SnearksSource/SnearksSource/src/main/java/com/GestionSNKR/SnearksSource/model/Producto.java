@@ -1,25 +1,22 @@
 package com.GestionSNKR.SnearksSource.model;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Entity
 @Table(name = "producto")
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class Producto {
 
     @Id
@@ -32,42 +29,25 @@ public class Producto {
     @Column(name = "nombre_modelo")
     private String nombreModelo;
 
-    @Column(name = "descripcion",length = 600)
+    @Column(name = "descripcion", length = 600)
     private String descripcion;
 
     @Column(name = "link_imagen")
     private String linkImagen;
 
-    @Column(name = "tipo_categoria")
-    private String tipoCategoria;
+    @ManyToOne
+    @JoinColumn(name = "tipo_categoria_id")
+    private TipoCategoria tipoCategoria;
 
-    @ElementCollection
-    @CollectionTable(
-            name = "producto_tallas",
-            joinColumns = @JoinColumn(name = "producto_id")
-    )
-    @MapKeyColumn(name = "talla")
-    @Column(name = "cantidad")
-    private Map<String, Integer> tallasDisponibles = new HashMap<>();
+    @Column(name = "stock")
+    private Integer stock;
 
-    public Producto(Long id, Integer precio, String nombreModelo, String descripcion, String linkImagen, String tipoCategoria) {
-        this.id = id;
+    public Producto(Integer precio, String nombreModelo, String descripcion, String linkImagen, TipoCategoria tipoCategoria, Integer stock) {
         this.precio = precio;
         this.nombreModelo = nombreModelo;
         this.descripcion = descripcion;
         this.linkImagen = linkImagen;
         this.tipoCategoria = tipoCategoria;
-        this.tallasDisponibles = new HashMap<>();
+        this.stock = stock;
     }
-
-    public Producto(Long id, Integer precio, String nombreModelo, String descripcion, String linkImagen, String tipoCategoria, Map<String, Integer> tallasDisponibles) {
-        this.id = id;
-        this.precio = precio;
-        this.nombreModelo = nombreModelo;
-        this.descripcion = descripcion;
-        this.linkImagen = linkImagen;
-        this.tipoCategoria = tipoCategoria;
-        this.tallasDisponibles = tallasDisponibles == null ? new HashMap<>() : new HashMap<>(tallasDisponibles);
-    }
-
 }

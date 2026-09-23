@@ -15,10 +15,9 @@ public class ItemCarrito {
     private String nombreProducto;
     private Integer cantidad;
     private Double precioUnitario;
-    private String talla;
 
     public ItemCarrito copy() {
-        return new ItemCarrito(this.id, this.productoId, this.nombreProducto, this.cantidad, this.precioUnitario, this.talla);
+        return new ItemCarrito(this.id, this.productoId, this.nombreProducto, this.cantidad, this.precioUnitario);
     }
 
     public Double getSubtotal() {

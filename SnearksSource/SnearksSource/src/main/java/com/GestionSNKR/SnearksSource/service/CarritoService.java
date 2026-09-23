@@ -27,6 +27,10 @@ public class CarritoService {
         this.productoRepository = productoRepository;
     }
 
+    // ==========================================
+    // MÉTODOS BASADOS EN BASE DE DATOS (CLIENTE)
+    // ==========================================
+
     public Carrito obtenerCarrito(Long clienteId) {
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado."));
@@ -45,7 +49,7 @@ public class CarritoService {
                 });
     }
 
-    public Carrito agregarProducto(Long clienteId, Long productoId, Integer cantidad, String talla) {
+    public Carrito agregarProducto(Long clienteId, Long productoId, Integer cantidad) {
         if (productoId == null) {
             throw new IllegalArgumentException("Debe indicar el producto.");
         }
@@ -59,7 +63,10 @@ public class CarritoService {
         Producto producto = productoRepository.findById(productoId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado."));
 
-        String tallaFinal = talla == null ? "única" : talla.trim();
+        if (producto.getStock() == null || producto.getStock() < cantidad) {
+            throw new IllegalArgumentException("No hay suficiente stock disponible.");
+        }
+
         Carrito carrito = carritoRepository.findByClienteId(clienteId).orElseGet(() -> {
             Carrito nuevo = new Carrito();
             nuevo.setCliente(cliente);
@@ -72,8 +79,7 @@ public class CarritoService {
         });
 
         ItemCarrito itemExistente = carrito.getItems().stream()
-                .filter(item -> Objects.equals(item.getProductoId(), productoId)
-                        && Objects.equals(item.getTalla(), tallaFinal))
+                .filter(item -> Objects.equals(item.getProductoId(), productoId))
                 .findFirst()
                 .orElse(null);
 
@@ -86,7 +92,6 @@ public class CarritoService {
             item.setNombreProducto(producto.getNombreModelo());
             item.setCantidad(cantidad);
             item.setPrecioUnitario(producto.getPrecio() != null ? producto.getPrecio().doubleValue() : 0.0);
-            item.setTalla(tallaFinal);
             carrito.getItems().add(item);
         }
 
@@ -95,7 +100,7 @@ public class CarritoService {
         return carritoRepository.save(carrito);
     }
 
-    public Carrito actualizarCantidad(Long clienteId, Long productoId, Integer cantidad, String talla) {
+    public Carrito actualizarCantidad(Long clienteId, Long productoId, Integer cantidad) {
         if (productoId == null) {
             throw new IllegalArgumentException("Debe indicar el producto.");
         }
@@ -104,11 +109,9 @@ public class CarritoService {
         }
 
         Carrito carrito = obtenerCarrito(clienteId);
-        String tallaFinal = talla == null ? "única" : talla.trim();
 
         ItemCarrito item = carrito.getItems().stream()
-                .filter(i -> Objects.equals(i.getProductoId(), productoId)
-                        && Objects.equals(i.getTalla(), tallaFinal))
+                .filter(i -> Objects.equals(i.getProductoId(), productoId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado en el carrito."));
 
@@ -118,18 +121,14 @@ public class CarritoService {
         return carritoRepository.save(carrito);
     }
 
-    public Carrito eliminarProducto(Long clienteId, Long productoId, String talla) {
+    public Carrito eliminarProducto(Long clienteId, Long productoId) {
         if (productoId == null) {
             throw new IllegalArgumentException("Debe indicar el producto.");
         }
 
         Carrito carrito = obtenerCarrito(clienteId);
-        String tallaFinal = talla == null ? "única" : talla.trim();
 
-        // ✅ Modificación sobre la lista mutable existente
-        carrito.getItems().removeIf(item ->
-                Objects.equals(item.getProductoId(), productoId) &&
-                        Objects.equals(item.getTalla(), tallaFinal));
+        carrito.getItems().removeIf(item -> Objects.equals(item.getProductoId(), productoId));
 
         carrito.setFechaUltimaModificacion(LocalDateTime.now());
         carrito.calcularTotal();
@@ -143,6 +142,10 @@ public class CarritoService {
         carrito.calcularTotal();
         return carritoRepository.save(carrito);
     }
+
+    // ==========================================
+    // MÉTODOS BASADOS EN SESIÓN (INVITADO)
+    // ==========================================
 
     public Carrito obtenerCarrito(HttpSession session) {
         Carrito carrito = (Carrito) session.getAttribute("carrito");
@@ -159,7 +162,7 @@ public class CarritoService {
         return carrito;
     }
 
-    public Carrito agregarProducto(HttpSession session, Long productoId, Integer cantidad, String talla) {
+    public Carrito agregarProducto(HttpSession session, Long productoId, Integer cantidad) {
         if (productoId == null) {
             throw new IllegalArgumentException("Debe indicar el producto.");
         }
@@ -170,12 +173,14 @@ public class CarritoService {
         Producto producto = productoRepository.findById(productoId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado."));
 
-        String tallaFinal = talla == null ? "única" : talla.trim();
+        if (producto.getStock() == null || producto.getStock() < cantidad) {
+            throw new IllegalArgumentException("No hay suficiente stock disponible.");
+        }
+
         Carrito carrito = obtenerCarrito(session);
 
         ItemCarrito itemExistente = carrito.getItems().stream()
-                .filter(item -> Objects.equals(item.getProductoId(), productoId)
-                        && Objects.equals(item.getTalla(), tallaFinal))
+                .filter(item -> Objects.equals(item.getProductoId(), productoId))
                 .findFirst()
                 .orElse(null);
 
@@ -188,7 +193,6 @@ public class CarritoService {
             item.setNombreProducto(producto.getNombreModelo());
             item.setCantidad(cantidad);
             item.setPrecioUnitario(producto.getPrecio() != null ? producto.getPrecio().doubleValue() : 0.0);
-            item.setTalla(tallaFinal);
             carrito.getItems().add(item);
         }
 
@@ -198,7 +202,7 @@ public class CarritoService {
         return carrito;
     }
 
-    public Carrito actualizarCantidad(HttpSession session, Long productoId, Integer cantidad, String talla) {
+    public Carrito actualizarCantidad(HttpSession session, Long productoId, Integer cantidad) {
         if (productoId == null) {
             throw new IllegalArgumentException("Debe indicar el producto.");
         }
@@ -207,11 +211,9 @@ public class CarritoService {
         }
 
         Carrito carrito = obtenerCarrito(session);
-        String tallaFinal = talla == null ? "única" : talla.trim();
 
         ItemCarrito item = carrito.getItems().stream()
-                .filter(i -> Objects.equals(i.getProductoId(), productoId)
-                        && Objects.equals(i.getTalla(), tallaFinal))
+                .filter(i -> Objects.equals(i.getProductoId(), productoId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado en el carrito."));
 
@@ -222,18 +224,14 @@ public class CarritoService {
         return carrito;
     }
 
-    public Carrito eliminarProducto(HttpSession session, Long productoId, String talla) {
+    public Carrito eliminarProducto(HttpSession session, Long productoId) {
         if (productoId == null) {
             throw new IllegalArgumentException("Debe indicar el producto.");
         }
 
         Carrito carrito = obtenerCarrito(session);
-        String tallaFinal = talla == null ? "única" : talla.trim();
 
-        // ✅ Modificación sobre la lista mutable existente
-        carrito.getItems().removeIf(item ->
-                Objects.equals(item.getProductoId(), productoId) &&
-                        Objects.equals(item.getTalla(), tallaFinal));
+        carrito.getItems().removeIf(item -> Objects.equals(item.getProductoId(), productoId));
 
         carrito.setFechaUltimaModificacion(LocalDateTime.now());
         carrito.calcularTotal();

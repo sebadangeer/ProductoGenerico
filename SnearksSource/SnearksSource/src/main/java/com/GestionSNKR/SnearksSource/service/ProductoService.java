@@ -23,7 +23,7 @@ public class ProductoService {
         return productoRepository.findAll();
     }
 
-    // Obtener productos filtrados por categoría
+    // Obtener productos filtrados por el nombre de la categoría
     public List<Producto> obtenerPorCategoria(String categoria) {
         return productoRepository.findByTipoCategoriaIgnoreCase(categoria);
     }
@@ -46,7 +46,7 @@ public class ProductoService {
             producto.setDescripcion(productoDetalles.getDescripcion());
             producto.setLinkImagen(productoDetalles.getLinkImagen());
             producto.setTipoCategoria(productoDetalles.getTipoCategoria());
-            producto.setTallasDisponibles(productoDetalles.getTallasDisponibles());
+            producto.setStock(productoDetalles.getStock());
             return productoRepository.save(producto);
         }).orElseThrow(() -> new RuntimeException("Producto no encontrado con el ID: " + id));
     }

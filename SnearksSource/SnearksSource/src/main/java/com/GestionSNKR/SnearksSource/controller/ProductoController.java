@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/productos")
-@CrossOrigin(origins = "*") // Permite peticiones desde el frontend (JS local/fetch)
+@CrossOrigin(origins = "*")
 public class ProductoController {
 
     private final ProductoService productoService;
@@ -28,19 +28,10 @@ public class ProductoController {
         return ResponseEntity.ok(productos);
     }
 
-    @GetMapping("/categoria/jordan")
-    public ResponseEntity<List<Producto>> obtenerCategoriaJordan() {
-        List<Producto> productos = productoService.obtenerPorCategoria("jordan");
-        return ResponseEntity.ok(productos);
-    }
-    @GetMapping("/categoria/sports")
-    public ResponseEntity<List<Producto>> obtenerCategoriaSports() {
-        List<Producto> productos = productoService.obtenerPorCategoria("Nike Sports");
-        return ResponseEntity.ok(productos);
-    }
-    @GetMapping("/categoria/urban")
-    public ResponseEntity<List<Producto>> obtenerCategoriaUrban() {
-        List<Producto> productos = productoService.obtenerPorCategoria("Nike Urbano");
+    // Endpoint dinámico para filtrar por cualquier nombre de categoría (GET /api/productos/categoria/{categoria})
+    @GetMapping("/categoria/{categoria}")
+    public ResponseEntity<List<Producto>> obtenerPorCategoria(@PathVariable String categoria) {
+        List<Producto> productos = productoService.obtenerPorCategoria(categoria);
         return ResponseEntity.ok(productos);
     }
 

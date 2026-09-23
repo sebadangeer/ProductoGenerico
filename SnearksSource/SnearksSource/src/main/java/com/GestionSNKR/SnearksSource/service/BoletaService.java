@@ -3,16 +3,19 @@ package com.GestionSNKR.SnearksSource.service;
 import com.GestionSNKR.SnearksSource.model.Boleta;
 import com.GestionSNKR.SnearksSource.model.Carrito;
 import com.GestionSNKR.SnearksSource.model.Cliente;
+import com.GestionSNKR.SnearksSource.model.ItemCarrito;
+import com.GestionSNKR.SnearksSource.model.Producto;
 import com.GestionSNKR.SnearksSource.repository.BoletaRepository;
 import com.GestionSNKR.SnearksSource.repository.CarritoRepository;
 import com.GestionSNKR.SnearksSource.repository.ClienteRepository;
+import com.GestionSNKR.SnearksSource.repository.ProductoRepository;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.GestionSNKR.SnearksSource.model.ItemCarrito;
-import jakarta.mail.internet.MimeMessage;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,15 +26,22 @@ public class BoletaService {
     private final BoletaRepository boletaRepository;
     private final CarritoRepository carritoRepository;
     private final ClienteRepository clienteRepository;
+    private final ProductoRepository productoRepository;
     private final JavaMailSender mailSender;
 
-    public BoletaService(BoletaRepository boletaRepository, CarritoRepository carritoRepository, ClienteRepository clienteRepository, JavaMailSender mailSender) {
+    public BoletaService(BoletaRepository boletaRepository,
+                         CarritoRepository carritoRepository,
+                         ClienteRepository clienteRepository,
+                         ProductoRepository productoRepository,
+                         JavaMailSender mailSender) {
         this.boletaRepository = boletaRepository;
         this.carritoRepository = carritoRepository;
         this.clienteRepository = clienteRepository;
+        this.productoRepository = productoRepository;
         this.mailSender = mailSender;
     }
 
+    @Transactional
     public Boleta crearDesdeCarrito(Long clienteId, String metodoPago, String direccion) {
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado."));
@@ -41,6 +51,19 @@ public class BoletaService {
 
         if (carrito.getItems() == null || carrito.getItems().isEmpty()) {
             throw new IllegalArgumentException("El carrito está vacío.");
+        }
+
+        // Descontar stock de cada producto
+        for (ItemCarrito item : carrito.getItems()) {
+            Producto producto = productoRepository.findById(item.getProductoId())
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado ID: " + item.getProductoId()));
+
+            if (producto.getStock() == null || producto.getStock() < item.getCantidad()) {
+                throw new IllegalArgumentException("Stock insuficiente para el producto: " + producto.getNombreModelo());
+            }
+
+            producto.setStock(producto.getStock() - item.getCantidad());
+            productoRepository.save(producto);
         }
 
         Boleta boleta = new Boleta();
@@ -91,11 +114,10 @@ public class BoletaService {
         html.append("<h2>Gracias por tu compra</h2>");
         html.append("<p>Boleta #").append(boleta.getId()).append(" - ").append(boleta.getFecha()).append("</p>");
         html.append("<table border='1' cellpadding='6' cellspacing='0'>");
-        html.append("<tr><th>Producto</th><th>Talla</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>");
+        html.append("<tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>");
         boleta.getItems().forEach(i -> {
             html.append("<tr>");
             html.append("<td>").append(i.getNombreProducto()).append("</td>");
-            html.append("<td>").append(i.getTalla()).append("</td>");
             html.append("<td>").append(i.getCantidad()).append("</td>");
             html.append("<td>").append(String.format("%.2f", i.getPrecioUnitario())).append("</td>");
             html.append("<td>").append(String.format("%.2f", i.getSubtotal())).append("</td>");
